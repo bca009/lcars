@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warp Core Layout 1701-D – Improved</title>
+  <style>
+    :root {
+      --lcars-bg: #000000;
+      --lcars-primary: #ff9c00;
+      --lcars-secondary: #cc99cc;
+      --lcars-accent: #99ccff;
+      --lcars-button: #ffcc99;
+      --lcars-warning: #ff0000;
+      --lcars-ok: #99ccff;
+      --lcars-muted: #555555;
+      --text-main: #ff9c00;
+      --scanline-a: rgba(18, 16, 16, 0);
+      --scanline-b: rgba(0, 0, 0, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: var(--lcars-bg);
+      font-family: "Arial Narrow", Helvetica, sans-serif;
+      color: var(--text-main);
+    }
+
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* LCARS UI Layer */
+    #ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 260px;
+      grid-template-rows: 80px minmax(0, 1fr) 160px;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    /* LCARS Shapes */
+    .lcars-bar {
+      background-color: var(--lcars-secondary);
+      border-radius: 20px;
+      height: 20px;
+      margin-bottom: 5px;
+    }
+
+    .lcars-block {
+      background-color: var(--lcars-accent);
+      margin-bottom: 5px;
+      padding: 10px;
+      text-align: right;
+      color: #000;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 1.2rem;
+      border-radius: 15px 0 0 15px;
+      pointer-events: auto;
+      cursor: default;
+      user-select: none;
+    }
+
+    .lcars-header-block {
+      background-color: var(--lcars-primary);
+      border-radius: 0 0 0 30px;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 10px;
+      font-size: 1.5rem;
+      color: #000;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    .lcars-btn {
+      background-color: var(--lcars-button);
+      margin-bottom: 5px;
+      padding: 15px 10px;
+      text-align: right;
+      color: #000;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 1rem;
+      border-radius: 15px 0 0 15px;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.06s ease;
+      border: none;
+      width: 100%;
+      display: block;
+      outline: none;
+    }
+
+    .lcars-btn:hover {
+      background-color: #ffffff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    }
+
+    .lcars-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.4) inset;
+    }
+
+    .lcars-btn:disabled {
+      background-color: var(--lcars-muted);
+      color: #888;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .lcars-btn.ai-btn {
+      background-color: var(--lcars-secondary);
+      display: inline-block;
+      border-radius: 10px;
+      padding-inline: 14px;
+      white-space: nowrap;
+    }
+
+    .lcars-btn.ai-btn:hover {
+      background-color: #eebbff;
+      box-shadow: 0 0 15px var(--lcars-secondary);
+    }
+
+    .lcars-btn:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+
+    /* Slider styling */
+    .slider-container {
+      margin-bottom: 20px;
+      pointer-events: auto;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+
+    input[type="range"]:focus {
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 30px;
+      width: 50px;
+      border-radius: 15px 0 0 15px;
+      background: var(--lcars-primary);
+      cursor: pointer;
+      margin-top: -11px;
+      box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      cursor: pointer;
+      background: #999;
+      border-radius: 4px;
+    }
+
+    input[type="range"]:disabled::-webkit-slider-thumb {
+      background: var(--lcars-muted);
+    }
+
+    .lcars-text {
+      color: var(--lcars-primary);
+      font-size: 2rem;
+      text-align: right;
+      text-transform: uppercase;
+      position: absolute;
+      right: 20px;
+      top: 10px;
+      width: 320px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Layout areas */
+    .top-bar {
+      grid-column: 1 / span 3;
+      grid-row: 1;
+      display: flex;
+      border-bottom: 5px solid #000;
+      position: relative;
+    }
+
+    .top-elbow {
+      width: 220px;
+      height: 100%;
+      background-color: var(--lcars-secondary);
+      border-radius: 0 0 0 40px;
+    }
+
+    .top-connector {
+      flex-grow: 1;
+      height: 20px;
+      align-self: flex-end;
+      background-color: var(--lcars-secondary);
+    }
+
+    .left-panel {
+      grid-column: 1;
+      grid-row: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .right-readout {
+      grid-column: 3;
+      grid-row: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      text-align: left;
+      color: #ffcc99;
+      font-family: "Impact", system-ui, sans-serif;
+      letter-spacing: 1px;
+      min-height: 0;
+    }
+
+    .readout-box {
+      border-left: 10px solid var(--lcars-secondary);
+      padding-left: 15px;
+      margin-bottom: 18px;
+    }
+
+    .big-num {
+      font-size: 3rem;
+      line-height: 3rem;
+      white-space: nowrap;
+    }
+
+    .label {
+      font-size: 0.9rem;
+      color: var(--lcars-accent);
+      text-transform: uppercase;
+    }
+
+    .status-ok {
+      color: var(--lcars-ok) !important;
+    }
+
+    .status-warn {
+      color: var(--lcars-primary) !important;
+    }
+
+    .status-bad {
+      color: var(--lcars-warning) !important;
+    }
+
+    /* Bottom Computer Panel */
+    .bottom-panel {
+      grid-column: 1 / span 3;
+      grid-row: 3;
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      pointer-events: auto;
+      background: rgba(0, 0, 0, 0.65);
+      border-top: 2px solid var(--lcars-secondary);
+      padding-top: 10px;
+      padding-bottom: 8px;
+    }
+
+    .input-group {
+      flex-grow: 1;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #computer-input {
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid var(--lcars-primary);
+      color: var(--lcars-primary);
+      font-family: Arial, sans-serif;
+      font-size: 1.05rem;
+      padding: 10px;
+      flex-grow: 1;
+      border-radius: 10px;
+      outline: none;
+      text-transform: uppercase;
+    }
+
+    #computer-input::placeholder {
+      color: rgba(255, 156, 0, 0.55);
+    }
+
+    #computer-input:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+
+    #computer-response {
+      font-family: monospace;
+      color: var(--lcars-secondary);
+      font-size: 0.95rem;
+      width: 420px;
+      max-width: 40vw;
+      min-width: 260px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid #555;
+      padding: 10px;
+      border-radius: 5px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    #log-display {
+      font-family: monospace;
+      color: var(--lcars-primary);
+      font-size: 0.8rem;
+      height: 100px;
+      overflow: hidden;
+      text-align: right;
+      margin-top: 18px;
+      opacity: 0.78;
+      line-height: 1.3;
+    }
+
+    .processing {
+      animation: blink 0.5s infinite alternate;
+    }
+
+    @keyframes blink {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0.3;
+      }
+    }
+
+    /* Scanline overlay */
+    .scanline {
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(var(--scanline-a) 50%, var(--scanline-b) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.025), rgba(0, 0, 255, 0.06));
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none;
+      z-index: 10;
+      mix-blend-mode: soft-light;
+      opacity: 0.55;
+    }
+
+    /* Helper pill above slider */
+    .hint-text {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #ffcc99;
+      text-align: right;
+      opacity: 0.65;
+      margin-bottom: 2px;
+    }
+
+    .key-hints {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #ffcc99;
+      opacity: 0.7;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .key-hints span {
+      border: 1px solid #ffcc99;
+      border-radius: 4px;
+      padding: 1px 4px;
+      margin-left: 4px;
+      font-size: 0.7rem;
+    }
+
+    /* Small responsive tweaks */
+    @media (max-width: 1100px) {
+      #ui-layer {
+        grid-template-columns: 190px minmax(0, 1fr) 240px;
+      }
+
+      .lcars-text {
+        font-size: 1.6rem;
+        width: 260px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      #ui-layer {
+        grid-template-columns: 170px minmax(0, 1fr) 0;
+        grid-template-rows: 70px minmax(0, 1fr) 180px;
+      }
+
+      .right-readout {
+        display: none;
+      }
+
+      #computer-response {
+        max-width: none;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="scanline" aria-hidden="true"></div>
+
+  <div id="ui-layer" aria-label="Warp core control and status interface" role="application">
+    <!-- Header -->
+    <div class="top-bar">
+      <div class="top-elbow" aria-hidden="true"></div>
+      <div class="top-connector" aria-hidden="true"></div>
+      <div class="lcars-text" aria-hidden="true">USS ENTERPRISE // ENGINEERING</div>
+    </div>
+
+    <!-- Left Control Panel -->
+    <aside class="left-panel" aria-label="Core controls">
+      <div class="lcars-block" aria-hidden="true">CORE CONTROL</div>
+
+      <button
+        id="init-btn"
+        class="lcars-btn"
+        type="button"
+        aria-pressed="false"
+        aria-label="Initialize warp core (shortcut: I or Space)">
+        INITIALIZE
+      </button>
+
+      <button
+        id="shutdown-btn"
+        class="lcars-btn"
+        type="button"
+        disabled
+        aria-pressed="false"
+        aria-label="Emergency SCRAM shutdown (shortcut: I or Space)">
+        SCRAM
+      </button>
+
+      <div style="height: 22px"></div>
+
+      <!-- WARP SLIDER -->
+      <div class="lcars-block" style="background-color: var(--lcars-primary);">WARP FACTOR</div>
+      <div class="slider-container">
+        <div
+          id="warp-val-display"
+          style="text-align: right; font-size: 1.5rem; color: var(--lcars-primary); font-weight: bold; margin-bottom: 0;"
+          aria-live="polite"
+        >
+          WARP 0.0
+        </div>
+        <div class="hint-text">Drag or use ↑/↓ to adjust warp</div>
+        <input
+          type="range"
+          id="warp-slider"
+          min="0"
+          max="9.9"
+          step="0.1"
+          value="0"
+          disabled
+          aria-valuemin="0"
+          aria-valuemax="9.9"
+          aria-valuenow="0"
+          aria-label="Warp factor"
+        />
+        <div class="key-hints">
+          <span>SPACE / I</span> toggle core
+          <span>↑ ↓</span> warp factor
+          <span>ENTER</span> send query
+        </div>
+      </div>
+
+      <div style="height: 10px"></div>
+
+      <div class="lcars-block" aria-hidden="true">COMPUTER</div>
+      <button
+        id="toggle-voice-btn"
+        class="lcars-btn"
+        type="button"
+        style="background-color: var(--lcars-accent);"
+        aria-pressed="true"
+        aria-label="Toggle audio voice responses"
+      >
+        AUDIO: ON
+      </button>
+
+      <div
+        class="lcars-bar"
+        style="width: 80%; margin-left: auto; background: var(--lcars-primary); margin-top: 20px;"
+        aria-hidden="true"
+      ></div>
+      <div id="log-display" aria-live="polite">
+        SYSTEM STANDBY<br />
+        AWAITING INPUT
+      </div>
+    </aside>
+
+    <!-- Right Readouts -->
+    <section class="right-readout" aria-label="Reactor diagnostic readouts">
+      <div class="readout-box">
+        <div class="label">FIELD INTEGRITY</div>
+        <div id="field-val" class="big-num">100%</div>
+      </div>
+      <div class="readout-box">
+        <div class="label">REACTION OUTPUT</div>
+        <div id="output-val" class="big-num" style="color: var(--lcars-primary);">0.00 TJ</div>
+      </div>
+      <div class="readout-box">
+        <div class="label">STATUS</div>
+        <div
+          id="status-text"
+          class="big-num status-bad"
+          style="font-size: 1.5rem;"
+          aria-live="polite"
+        >
+          OFFLINE
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Computer Interaction -->
+    <section class="bottom-panel" aria-label="Main computer query console">
+      <div class="lcars-header-block" style="width: 150px; border-radius: 0 0 0 20px; background: var(--lcars-secondary);">
+        QUERY
+      </div>
+      <div class="input-group">
+        <input
+          type="text"
+          id="computer-input"
+          placeholder="ASK COMPUTER..."
+          autocomplete="off"
+          aria-label="Computer query input"
+        />
+        <button id="ask-btn" class="lcars-btn ai-btn" type="button" aria-label="Send query to computer">
+          ✨ ENGAGE
+        </button>
+      </div>
+      <div id="computer-response" role="log" aria-live="polite">
+        &gt; READY.
+      </div>
+    </section>
+  </div>
+
+  <div id="canvas-container" aria-hidden="true"></div>
+
+  <!-- Three.js & postprocessing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+  <script>
+    /**
+     * NCC-1701-D WARP CORE SIMULATION – IMPROVED PASS
+     * - Tidied structure
+     * - Safer audio reinit
+     * - Keyboard controls
+     * - Slightly brighter environment
+     * - A bit more defensive around API failures
+     */
+
+    // --- Configuration ---
+    const CONFIG = {
+      segmentCount: 25,
+      coreRadius: 1.0,
+      segmentHeight: 0.15,
+      gap: 0.05,
+      pulseSpeedBase: 1.0,
+      colors: {
+        off: 0x111111,
+        glow: 0x3366ff,
+        bright: 0x88ccff,
+        injector: 0xff0000,
+        metal: 0x333333,
+      },
+    };
+
+    const state = {
+      isRunning: false,
+      power: 0,
+      warpFactor: 0,
+      time: 0,
+      pulseOffset: 0,
+      voiceEnabled: true,
+    };
+
+    // --- Audio (Procedural TNG-style Thrum) ---
+    let audioCtx = null;
+    let osc1 = null;
+    let osc2 = null;
+    let gainNode = null;
+    let lfo = null;
+    let lfoGain = null;
+
+    function ensureAudioContext() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return null;
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function stopHumOscillators() {
+      [osc1, osc2, lfo].forEach((osc) => {
+        if (osc && typeof osc.stop === "function") {
+          try {
+            osc.stop();
+          } catch (e) {
+            // Ignore double-stop
+          }
+        }
+      });
+      osc1 = osc2 = lfo = null;
+      if (lfoGain) lfoGain.disconnect();
+      if (gainNode) gainNode.disconnect();
+      lfoGain = gainNode = null;
+    }
+
+    function initAudio() {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      // If we already have oscillators alive, keep them and just fade up again
+      if (osc1 && osc2 && gainNode && lfo && lfoGain) {
+        gainNode.gain.setTargetAtTime(state.power * 0.4, ctx.currentTime, 0.2);
+        return;
+      }
+
+      stopHumOscillators();
+
+      osc1 = ctx.createOscillator();
+      osc1.type = "sine";
+      osc1.frequency.value = 40;
+
+      osc2 = ctx.createOscillator();
+      osc2.type = "triangle";
+      osc2.frequency.value = 80;
+
+      lfo = ctx.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = 1.5;
+
+      lfoGain = ctx.createGain();
+      lfoGain.gain.value = 0.3;
+
+      gainNode = ctx.createGain();
+      gainNode.gain.value = 0;
+
+      lfo.connect(lfoGain);
+      lfoGain.connect(gainNode.gain);
+
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+      lfo.start();
+    }
+
+    function updateAudio(power, warp) {
+      if (!audioCtx || !osc1 || !osc2 || !lfo || !gainNode) return;
+      const now = audioCtx.currentTime;
+
+      const baseFreq1 = 40;
+      const baseFreq2 = 80;
+      const basePulse = 1.5;
+
+      const targetFreq1 = baseFreq1 + warp * 15;
+      const targetFreq2 = baseFreq2 + warp * 30;
+      const targetPulse = basePulse + warp * 2;
+
+      osc1.frequency.setTargetAtTime(targetFreq1, now, 0.1);
+      osc2.frequency.setTargetAtTime(targetFreq2, now, 0.1);
+      lfo.frequency.setTargetAtTime(targetPulse, now, 0.1);
+
+      gainNode.gain.setTargetAtTime(power * 0.4, now, 0.15);
+    }
+
+    function fadeOutAudio() {
+      if (!audioCtx || !gainNode) return;
+      const now = audioCtx.currentTime;
+      gainNode.gain.setTargetAtTime(0, now, 0.25);
+    }
+
+    // --- Gemini API INTEGRATION ---
+    // NOTE: expects apiKey to be injected somehow in your hosting environment.
+    const apiKey = ""; // set your Gemini key here or inject at build/deploy time.
+
+    function typeText(elementId, text) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.textContent = "> ";
+      let i = 0;
+      const speed = 18;
+      const len = text.length;
+      const scrollToBottom = () => {
+        el.scrollTop = el.scrollHeight;
+      };
+
+      function tick() {
+        if (i < len) {
+          el.textContent += text.charAt(i);
+          scrollToBottom();
+          i++;
+          setTimeout(tick, speed);
+        }
+      }
+      tick();
+    }
+
+    function setResponseProcessing(isProcessing) {
+      const responseDiv = document.getElementById("computer-response");
+      const askBtn = document.getElementById("ask-btn");
+      if (!responseDiv || !askBtn) return;
+      if (isProcessing) {
+        responseDiv.classList.add("processing");
+        askBtn.disabled = true;
+      } else {
+        responseDiv.classList.remove("processing");
+        askBtn.disabled = false;
+      }
+    }
+
+    async function callGemini(prompt) {
+      const responseDiv = document.getElementById("computer-response");
+      if (!responseDiv) return;
+
+      if (!apiKey) {
+        responseDiv.textContent =
+          "> GEMINI LINK OFFLINE. INSTALLATION NOTE: API KEY NOT CONFIGURED.";
+        return;
+      }
+
+      setResponseProcessing(true);
+      responseDiv.textContent = "PROCESSING...";
+
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              systemInstruction: {
+                parts: [
+                  {
+                    text:
+                      "You are the main computer of the USS Enterprise-D (NCC-1701-D). Respond like the Star Trek ship computer: concise, precise, neutral but pleasant. Use relevant warp core technobabble (dilithium matrix, magnetic constrictors, antimatter injectors, plasma manifolds) where appropriate. Keep each reply under 50 words.",
+                  },
+                ],
+              },
+            }),
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const text =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "UNABLE TO PROCESS REQUEST.";
+
+        setResponseProcessing(false);
+        typeText("computer-response", text);
+
+        if (state.voiceEnabled) {
+          speakText(text).catch((err) => {
+            console.error("TTS error", err);
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        setResponseProcessing(false);
+        responseDiv.textContent = "> COMMUNICATION LINK OFFLINE.";
+      }
+    }
+
+    async function speakText(text) {
+      if (!state.voiceEnabled || !apiKey) return;
+
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text }] }],
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: "Kore",
+                    },
+                  },
+                },
+              },
+            }),
+          }
+        );
+
+        if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
+
+        const data = await res.json();
+        const audioData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData
+          ?.data;
+        if (!audioData) throw new Error("Missing inlineData");
+
+        const binaryString = atob(audioData);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const wavBuffer = pcm16ToWav(bytes);
+
+        const VoiceCtx = window.AudioContext || window.webkitAudioContext;
+        if (!VoiceCtx) return;
+        const voiceCtx = new VoiceCtx();
+        const audioBuffer = await voiceCtx.decodeAudioData(wavBuffer);
+        const source = voiceCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(voiceCtx.destination);
+        source.start(0);
+      } catch (e) {
+        console.error("TTS Error", e);
+      }
+    }
+
+    function pcm16ToWav(pcmData) {
+      const sampleRate = 24000;
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+      const blockAlign = (numChannels * bitsPerSample) / 8;
+      const dataSize = pcmData.length;
+      const fileSize = 36 + dataSize;
+
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+
+      writeString(view, 0, "RIFF");
+      view.setUint32(4, fileSize, true);
+      writeString(view, 8, "WAVE");
+
+      writeString(view, 12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitsPerSample, true);
+
+      writeString(view, 36, "data");
+      view.setUint32(40, dataSize, true);
+
+      const pcmBytes = new Uint8Array(pcmData);
+      new Uint8Array(buffer, 44).set(pcmBytes);
+
+      return buffer;
+    }
+
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+
+    // --- UI Helpers ---
+    const slider = document.getElementById("warp-slider");
+    const warpDisplay = document.getElementById("warp-val-display");
+    const initBtn = document.getElementById("init-btn");
+    const shutdownBtn = document.getElementById("shutdown-btn");
+    const statusText = document.getElementById("status-text");
+    const outputVal = document.getElementById("output-val");
+    const fieldVal = document.getElementById("field-val");
+    const logDisplay = document.getElementById("log-display");
+    const inputBox = document.getElementById("computer-input");
+    const askBtn = document.getElementById("ask-btn");
+    const toggleVoiceBtn = document.getElementById("toggle-voice-btn");
+
+    function updateWarpDisplay() {
+      if (!slider || !warpDisplay) return;
+      const val = parseFloat(slider.value) || 0;
+      state.warpFactor = val;
+      warpDisplay.textContent = `WARP ${val.toFixed(1)}`;
+      slider.setAttribute("aria-valuenow", val.toFixed(1));
+      updateAudio(state.power, state.warpFactor);
+
+      // Quick-n-dirty field integrity fun: degrade slightly at higher warp
+      const fieldIntegrity = Math.max(60, 100 - val * 3).toFixed(0);
+      fieldVal.textContent = `${fieldIntegrity}%`;
+    }
+
+    if (slider) {
+      slider.addEventListener("input", () => updateWarpDisplay());
+    }
+
+    function log(message) {
+      if (!logDisplay) return;
+      const lines = logDisplay.innerHTML.split("<br>");
+      lines.push(`&gt; ${message}`);
+      // Keep it to last ~7 lines so it doesn’t overflow forever
+      const trimmed = lines.slice(-7);
+      logDisplay.innerHTML = trimmed.join("<br>");
+    }
+
+    async function askComputer() {
+      if (!inputBox) return;
+      const query = inputBox.value.trim();
+      if (!query) return;
+      inputBox.value = "";
+      await callGemini(query);
+    }
+
+    if (askBtn) {
+      askBtn.addEventListener("click", askComputer);
+    }
+
+    if (inputBox) {
+      inputBox.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          askComputer();
+        }
+      });
+    }
+
+    if (toggleVoiceBtn) {
+      toggleVoiceBtn.addEventListener("click", (e) => {
+        state.voiceEnabled = !state.voiceEnabled;
+        e.target.textContent = state.voiceEnabled ? "AUDIO: ON" : "AUDIO: OFF";
+        e.target.style.backgroundColor = state.voiceEnabled
+          ? "var(--lcars-accent)"
+          : "var(--lcars-muted)";
+        e.target.setAttribute("aria-pressed", String(state.voiceEnabled));
+      });
+    }
+
+    // --- 3D Scene ---
+    const container = document.getElementById("canvas-container");
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x181820);
+    scene.fog = new THREE.FogExp2(0x181820, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 0, 9);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 12;
+    controls.maxPolarAngle = Math.PI / 1.5;
+    controls.minPolarAngle = Math.PI / 3;
+
+    const renderScene = new THREE.RenderPass(scene, camera);
+    const bloomPass = new THREE.UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.5,
+      0.4,
+      0.85
+    );
+    bloomPass.threshold = 0.12;
+    bloomPass.strength = 2.3;
+    bloomPass.radius = 0.9;
+
+    const composer = new THREE.EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // Environment / Background
+    function createEnvironment() {
+      const envGroup = new THREE.Group();
+
+      // Vertical columns
+      const colGeo = new THREE.BoxGeometry(0.6, 20, 0.6);
+      const colMat = new THREE.MeshStandardMaterial({
+        color: 0xa0a0b0,
+        roughness: 0.35,
+        metalness: 0.6,
+        emissive: 0x664466,
+        emissiveIntensity: 1.1,
+      });
+
+      const lightStripGeo = new THREE.PlaneGeometry(0.22, 18);
+      const lightStripMat = new THREE.MeshBasicMaterial({
+        color: 0xaa88ff,
+        side: THREE.DoubleSide,
+      });
+
+      for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2;
+        const radius = 10.5;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+
+        const col = new THREE.Mesh(colGeo, colMat);
+        col.position.set(x, 0, z);
+        col.lookAt(0, 0, 0);
+
+        const strip = new THREE.Mesh(lightStripGeo, lightStripMat);
+        strip.position.set(0, 0, 0.31);
+        col.add(strip);
+
+        envGroup.add(col);
+      }
+
+      // Floor disc
+      const floorGeo = new THREE.CylinderGeometry(11, 11, 0.3, 32);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x202028,
+        roughness: 0.6,
+        metalness: 0.15,
+        emissive: 0x111111,
+        emissiveIntensity: 0.8,
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.position.y = -8.5;
+      envGroup.add(floor);
+
+      // Dust
+      const dustGeo = new THREE.BufferGeometry();
+      const dustCount = 2000;
+      const pos = new Float32Array(dustCount * 3);
+      for (let i = 0; i < dustCount * 3; i++) {
+        pos[i] = (Math.random() - 0.5) * 32;
+      }
+      dustGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const dustMat = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.05,
+        transparent: true,
+        opacity: 0.32,
+        blending: THREE.AdditiveBlending,
+      });
+      const dust = new THREE.Points(dustGeo, dustMat);
+      envGroup.add(dust);
+
+      return { group: envGroup, dust };
+    }
+
+    const environment = createEnvironment();
+    scene.add(environment.group);
+
+    const metalMat = new THREE.MeshStandardMaterial({
+      color: 0x222222,
+      roughness: 0.45,
+      metalness: 0.85,
+    });
+    const injectorMat = new THREE.MeshStandardMaterial({
+      color: 0x880000,
+      roughness: 0.3,
+      metalness: 0.5,
+    });
+    const injectorGlowMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const crystalMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.85,
+    });
+
+    const topSegments = [];
+    const bottomSegments = [];
+
+    function createStack(isTop) {
+      const group = new THREE.Group();
+      const segGeo = new THREE.CylinderGeometry(
+        CONFIG.coreRadius,
+        CONFIG.coreRadius,
+        CONFIG.segmentHeight,
+        32
+      );
+      const dividerGeo = new THREE.CylinderGeometry(
+        CONFIG.coreRadius * 1.05,
+        CONFIG.coreRadius * 1.05,
+        CONFIG.gap,
+        32
+      );
+      const dividerMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+      for (let i = 0; i < CONFIG.segmentCount; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.off });
+        const seg = new THREE.Mesh(segGeo, mat);
+        const y = (CONFIG.segmentHeight + CONFIG.gap) * i + 1.5;
+        seg.position.y = isTop ? y : -y;
+        group.add(seg);
+
+        const rib = new THREE.Mesh(dividerGeo, dividerMat);
+        rib.position.y = isTop
+          ? y - (CONFIG.segmentHeight / 2 + CONFIG.gap / 2)
+          : -y + (CONFIG.segmentHeight / 2 + CONFIG.gap / 2);
+        group.add(rib);
+
+        if (isTop) topSegments.push(seg);
+        else bottomSegments.push(seg);
+      }
+
+      const capGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.5, 32);
+      const cap = new THREE.Mesh(capGeo, metalMat);
+      cap.position.y = isTop ? 7.1 : -7.1;
+      group.add(cap);
+
+      return group;
+    }
+
+    scene.add(createStack(true));
+    scene.add(createStack(false));
+
+    function createChamber() {
+      const group = new THREE.Group();
+
+      const housingGeo = new THREE.CylinderGeometry(1.5, 1.5, 2.1, 10);
+      const housing = new THREE.Mesh(housingGeo, metalMat);
+      group.add(housing);
+
+      const crystalGeo = new THREE.SphereGeometry(0.62, 18, 18);
+      const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+      crystal.scale.y = 2.15;
+      const light = new THREE.PointLight(0xffffff, 0, 10);
+      light.position.set(0, 0, 0);
+      crystal.add(light);
+      group.add(crystal);
+
+      const pipeGeo = new THREE.CylinderGeometry(0.4, 0.4, 4.1, 16);
+      const pipeL = new THREE.Mesh(pipeGeo, injectorMat);
+      pipeL.rotation.z = Math.PI / 2;
+      pipeL.position.x = -2.6;
+      group.add(pipeL);
+
+      const pipeR = new THREE.Mesh(pipeGeo, injectorMat);
+      pipeR.rotation.z = Math.PI / 2;
+      pipeR.position.x = 2.6;
+      group.add(pipeR);
+
+      const ringGeo = new THREE.TorusGeometry(0.47, 0.06, 10, 32);
+      const ringL = new THREE.Mesh(ringGeo, injectorGlowMat);
+      ringL.rotation.y = Math.PI / 2;
+      ringL.position.x = -1.6;
+      group.add(ringL);
+
+      const ringR = new THREE.Mesh(ringGeo, injectorGlowMat);
+      ringR.rotation.y = Math.PI / 2;
+      ringR.position.x = 1.6;
+      group.add(ringR);
+
+      return { mesh: group, light, crystal };
+    }
+
+    const chamberObj = createChamber();
+    scene.add(chamberObj.mesh);
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444466, 1.7);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.6);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    const backLight = new THREE.DirectionalLight(0x9999ff, 1.1);
+    backLight.position.set(-5, 2, -10);
+    scene.add(backLight);
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      state.time += dt;
+
+      // Dust drift
+      const dustPositions = environment.dust.geometry.attributes.position.array;
+      const dustSpeed = 0.012 + state.warpFactor * 0.05;
+      for (let i = 1; i < dustPositions.length; i += 3) {
+        dustPositions[i] += dustSpeed;
+        if (dustPositions[i] > 18) {
+          dustPositions[i] = -18;
+        }
+      }
+      environment.dust.geometry.attributes.position.needsUpdate = true;
+
+      // Warp core pulsing
+      if (state.power > 0.001) {
+        const speed = CONFIG.pulseSpeedBase + state.warpFactor * 2.6;
+        state.pulseOffset -= speed * dt;
+        const intensityBoost = 1 + state.warpFactor * 0.2;
+
+        const brightColor = new THREE.Color(CONFIG.colors.bright);
+        const baseColor = new THREE.Color(CONFIG.colors.glow);
+
+        const updateStack = (stackArr) => {
+          stackArr.forEach((mesh, i) => {
+            const phase = state.time * speed + i * 0.5;
+            const sine = (Math.sin(phase) + 1) / 2;
+            const brightness = Math.pow(sine, 8) * state.power * intensityBoost;
+            mesh.material.color.copy(baseColor).lerp(brightColor, brightness);
+          });
+        };
+
+        updateStack(topSegments);
+        updateStack(bottomSegments);
+
+        const flutterSpeed = 15 + state.warpFactor * 5;
+        const chamberPulse = Math.sin(state.time * flutterSpeed) * 0.2 + 0.8;
+        chamberObj.light.intensity = state.power * 5 * chamberPulse * intensityBoost;
+        chamberObj.crystal.material.opacity = Math.min(
+          1,
+          state.power * 0.8 * intensityBoost
+        );
+      } else {
+        topSegments.forEach((m) => m.material.color.setHex(CONFIG.colors.off));
+        bottomSegments.forEach((m) => m.material.color.setHex(CONFIG.colors.off));
+        chamberObj.light.intensity = 0;
+        chamberObj.crystal.material.opacity = 0.12;
+      }
+
+      controls.update();
+      composer.render();
+    }
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- Core lifecycle ---
+    function setStatus(text, cssClass) {
+      statusText.textContent = text;
+      statusText.classList.remove("status-ok", "status-warn", "status-bad");
+      if (cssClass) statusText.classList.add(cssClass);
+    }
+
+    function setButtonsRunning(running) {
+      initBtn.disabled = running;
+      shutdownBtn.disabled = !running;
+      initBtn.setAttribute("aria-pressed", String(running));
+      shutdownBtn.setAttribute("aria-pressed", String(!running));
+    }
+
+    function setSliderEnabled(enabled) {
+      slider.disabled = !enabled;
+    }
+
+    function setPowerReadout(power) {
+      outputVal.textContent = `${(power * 100).toFixed(2)} TJ`;
+    }
+
+    function rampPower(target, duration) {
+      return new Promise((resolve) => {
+        const start = state.power;
+        const startTime = performance.now();
+
+        function step(now) {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          const eased = t * t * (3 - 2 * t); // smoothstep
+          state.power = start + (target - start) * eased;
+          updateAudio(state.power, state.warpFactor);
+          setPowerReadout(state.power);
+
+          if (t < 1 && (target > 0 ? state.isRunning : true)) {
+            requestAnimationFrame(step);
+          } else {
+            resolve();
+          }
+        }
+
+        requestAnimationFrame(step);
+      });
+    }
+
+    async function initialize() {
+      if (state.isRunning) return;
+      state.isRunning = true;
+      setButtonsRunning(true);
+      setSliderEnabled(true);
+      setStatus("INIT", "status-warn");
+
+      initAudio();
+      log("DILITHIUM CHAMBER ACTIVE");
+
+      // Initial warp factor 1.0
+      slider.value = "1.0";
+      updateWarpDisplay();
+
+      await rampPower(0.12, 900);
+      log("INJECTORS PRIMED");
+
+      await rampPower(1.0, 2600);
+      setStatus("ONLINE", "status-ok");
+      log("WARP CORE ONLINE");
+    }
+
+    async function shutdown() {
+      if (!state.isRunning && state.power <= 0.001) return;
+      state.isRunning = false;
+      setSliderEnabled(false);
+      setStatus("SCRAM", "status-bad");
+      log("EMERGENCY SCRAM INITIATED");
+
+      const startPower = state.power;
+      const startWarp = state.warpFactor;
+
+      // Manual fast ramp-down for a nice "drop" feeling
+      const steps = 55;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const ease = 1 - Math.pow(1 - t, 3);
+        state.power = startPower * (1 - ease);
+        state.warpFactor = startWarp * (1 - ease);
+        slider.value = state.warpFactor.toFixed(1);
+        updateWarpDisplay();
+        setPowerReadout(state.power);
+        await new Promise((r) => setTimeout(r, 18));
+      }
+
+      state.power = 0;
+      state.warpFactor = 0;
+      slider.value = "0";
+      updateWarpDisplay();
+      setPowerReadout(0);
+
+      fadeOutAudio();
+
+      setStatus("OFFLINE", "status-bad");
+      setButtonsRunning(false);
+      log("REACTION MASS CONTAINED // CORE OFFLINE");
+    }
+
+    if (initBtn) initBtn.addEventListener("click", initialize);
+    if (shutdownBtn) shutdownBtn.addEventListener("click", shutdown);
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.target === inputBox) return; // don't hijack typing
+
+      if (e.code === "Space" || e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        if (state.isRunning) shutdown();
+        else initialize();
+      }
+
+      if (!slider.disabled && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        const delta = e.key === "ArrowUp" ? 0.2 : -0.2;
+        let newVal = parseFloat(slider.value || "0") + delta;
+        newVal = Math.min(9.9, Math.max(0, newVal));
+        slider.value = newVal.toFixed(1);
+        updateWarpDisplay();
+      }
+    });
+
+    // Start animation loop and focus input on load
+    animate();
+    if (inputBox) {
+      inputBox.focus();
+    }
+  </script>
+</body>
+</html>
